@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UsuarioController;
+use App\Http\Controllers\Api\TareasController;
 
 // Ruta de prueba protegida
 Route::middleware('auth:sanctum')->get('/usuario-autenticado', function (Request $request) {
@@ -18,3 +19,17 @@ Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logo
 
 //Rutas de gestión de usuarios
 Route::post('/usuarios', [UsuarioController::class, 'store']);
+
+// Rutas de gestión de tareas
+Route::middleware('auth:sanctum')->group(function () {
+     Route::get('/tareas/buscar', [TareasController::class, 'buscar']);
+    Route::get('/tareas', [TareasController::class, 'index']);
+    Route::get('/tareas/{id}', [TareasController::class, 'show']);
+    Route::post('/tareas', [TareasController::class, 'store']);
+    Route::put('/tareas/{id}', [TareasController::class, 'update']);
+    Route::delete('/tareas/{id}', [TareasController::class, 'destroy']);
+});
+
+
+
+
