@@ -22,12 +22,16 @@ Route::post('/usuarios', [UsuarioController::class, 'store']);
 
 // Rutas de gestión de tareas
 Route::middleware('auth:sanctum')->group(function () {
-     Route::get('/tareas/buscar', [TareasController::class, 'buscar']);
+    
+    Route::get('/tareas/por-fecha', [TareasController::class, 'tareasPorFecha']);
+    Route::get('/tareas/vencidas', [TareasController::class, 'tareasVencidas']);
+    Route::get('/tareas/buscar', [TareasController::class, 'buscar']);
     Route::get('/tareas', [TareasController::class, 'index']);
     Route::get('/tareas/{id}', [TareasController::class, 'show']);
     Route::post('/tareas', [TareasController::class, 'store']);
     Route::put('/tareas/{id}', [TareasController::class, 'update']);
     Route::delete('/tareas/{id}', [TareasController::class, 'destroy']);
+
 });
 
 
