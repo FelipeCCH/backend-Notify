@@ -166,4 +166,73 @@ class TareasController extends Controller
             ], 500);
         }
     }
+
+    public function tareasPorFecha(Request $request)
+    {
+        try {
+            $usuario = Auth::user();
+            if (!$usuario) {
+                return response()->json(['error' => 'Usuario no autenticado'], 401);
+            }
+
+            $request->validate([
+                'fecha' => 'required|date',
+            ]);
+
+            $fecha = $request->fecha;
+
+            $tareas = Tarea::where('id_usuario', $usuario->id_usuario)
+                ->whereDate('fecha_limite', $fecha)
+                ->with(['usuario', 'notificacion'])
+                ->orderBy('hora_limite', 'asc')
+                ->get();
+
+            $message = $tareas->isEmpty()
+                ? "No hay tareas asignadas para la fecha: $fecha"
+                : "Tareas encontradas para la fecha: $fecha";
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $tareas,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tareas por fecha: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function tareasVencidas()
+    {
+        try {
+            $usuario = Auth::user();
+            if (!$usuario) {
+                return response()->json(['error' => 'Usuario no autenticado'], 401);
+            }
+
+            $hoy = now()->toDateString();
+
+            $tareasVencidas = Tarea::where('id_usuario', $usuario->id_usuario)
+                ->where('completada', false)
+                ->whereDate('fecha_limite', '<', $hoy)
+                ->with(['usuario', 'notificacion'])
+                ->orderBy('fecha_limite', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tareas vencidas encontradas correctamente',
+                'data' => $tareasVencidas
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tareas vencidas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
