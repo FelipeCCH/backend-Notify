@@ -41,13 +41,14 @@ class TareasController extends Controller
      */
     public function store(Request $request)
     {
-         $request->validate([
-            'titulo' => 'required|string|max:255',
+        $request->validate([
+            'titulo' => 'required|string|max:100',
             'descripcion' => 'nullable|string',
             'categoria' => 'nullable|string|max:100',
-            'fecha_limite' => 'required|date',
-            'hora_limite' => 'required',
+            'fecha_limite' => 'nullable|date|required_with:hora_limite',
+            'hora_limite' => 'nullable|date_format:H:i|required_with:fecha_limite',
         ]);
+
 
         try {
             $usuario = Auth::user();
@@ -59,7 +60,7 @@ class TareasController extends Controller
                 'categoria' => $request->categoria,
                 'fecha_limite' => $request->fecha_limite,
                 'hora_limite' => $request->hora_limite,
-                'completada' => false,
+                'estado' => 'Pendiente',
                 'fecha_creacion' => now(),
             ]);
 
@@ -97,7 +98,8 @@ class TareasController extends Controller
             'categoria' => 'nullable|string|max:100',
             'fecha_limite' => 'required|date',
             'hora_limite' => 'required',
-            'completada' => 'required|boolean'
+            'estado' => 'required|in:Pendiente,Completado,Vencido'
+
         ]);
 
         $tarea = Tarea::find($id);
@@ -216,7 +218,7 @@ class TareasController extends Controller
             $hoy = now()->toDateString();
 
             $tareasVencidas = Tarea::where('id_usuario', $usuario->id_usuario)
-                ->where('completada', false)
+                ->where('estado', 'Pendiente')
                 ->whereDate('fecha_limite', '<', $hoy)
                 ->with(['usuario', 'notificacion'])
                 ->orderBy('fecha_limite', 'asc')

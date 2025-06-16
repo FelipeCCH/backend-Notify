@@ -22,7 +22,7 @@ class Tarea extends Model
         'categoria',
         'fecha_limite',
         'hora_limite',
-        'completada',
+        'estado',
         'fecha_creacion',
     ];
 
