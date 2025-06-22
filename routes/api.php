@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tareas', [TareasController::class, 'store']);
     Route::put('/tareas/{id}', [TareasController::class, 'update']);
     Route::delete('/tareas/{id}', [TareasController::class, 'destroy']);
+    Route::post('/tareas/trigger-recordatorios', [TareasController::class, 'triggerRecordatorios']);
 
 });
 

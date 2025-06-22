@@ -9,11 +9,13 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         \App\Console\Commands\ActualizarTareasVencidas::class,
+        \App\Console\Commands\EnviarRecordatoriosTareas::class,
     ];
 
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('tareas:actualizar-vencidas')->dailyAt('00:00');
+        $schedule->command('tareas:actualizar-vencidas')->everyMinute();
+        $schedule->command('tareas:enviar-recordatorios')->everyMinute();
     }
 
     protected function commands()
