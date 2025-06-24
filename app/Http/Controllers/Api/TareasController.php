@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\Tarea;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\Notificacion;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
 
 class TareasController extends Controller
 {
@@ -41,13 +44,15 @@ class TareasController extends Controller
      */
     public function store(Request $request)
     {
-         $request->validate([
-            'titulo' => 'required|string|max:255',
+        $request->validate([
+            'titulo' => 'required|string|max:100',
             'descripcion' => 'nullable|string',
             'categoria' => 'nullable|string|max:100',
-            'fecha_limite' => 'required|date',
-            'hora_limite' => 'required',
+            'fecha_limite' => 'nullable|date|required_with:hora_limite',
+            'hora_limite' => 'nullable|date_format:H:i|required_with:fecha_limite',
+            'horas_anticipacion' => 'nullable|integer|min:1',
         ]);
+
 
         try {
             $usuario = Auth::user();
@@ -59,11 +64,33 @@ class TareasController extends Controller
                 'categoria' => $request->categoria,
                 'fecha_limite' => $request->fecha_limite,
                 'hora_limite' => $request->hora_limite,
-                'completada' => false,
+                'estado' => 'Pendiente',
                 'fecha_creacion' => now(),
             ]);
 
+             // Calcular anticipación y crear notificación
+            $anticipacion = $request->input(
+                'horas_anticipacion',
+                config('notificaciones.horas_anticipacion')
+            );
+
+            if ($tarea->fecha_limite && $tarea->hora_limite) {
+                $vencimiento = Carbon::parse("{$tarea->fecha_limite} {$tarea->hora_limite}");
+                $fechaEnvio  = $vencimiento->copy()->subHours($anticipacion);
+            } else {
+                $fechaEnvio = null;
+            }
+
+            Notificacion::create([
+                'id_tarea'           => $tarea->id_tarea,
+                'correo_destino'     => $usuario->correo,
+                'horas_anticipacion' => $anticipacion,
+                'fecha_envio'        => $fechaEnvio,
+                'enviada'            => false,
+            ]);
+
             return response()->json(['success' => true, 'data' => $tarea], 201);
+
         } catch (\Exception $e) {
             Log::error('Error al crear tarea: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al crear la tarea.'], 500);
@@ -75,7 +102,7 @@ class TareasController extends Controller
      */
     public function show(string $id)
     {
-        $tarea = Tarea::find($id);
+        $tarea = Tarea::with(['usuario','notificacion'])->find($id);
         if (!$tarea) {
             return response()->json(['error' => 'Tarea no encontrada'], 404);
         }
@@ -97,7 +124,8 @@ class TareasController extends Controller
             'categoria' => 'nullable|string|max:100',
             'fecha_limite' => 'required|date',
             'hora_limite' => 'required',
-            'completada' => 'required|boolean'
+            'estado' => 'required|in:Pendiente,Completado,Vencido',
+            'horas_anticipacion'  => 'nullable|integer|min:1'
         ]);
 
         $tarea = Tarea::find($id);
@@ -106,6 +134,29 @@ class TareasController extends Controller
         }
 
         $tarea->update($request->all());
+
+        // Recalcular anticipación y actualizar/crear notificación
+        $noti = $tarea->notificacion;
+        $anticipacion = $request->has('horas_anticipacion')
+            ? $request->input('horas_anticipacion')
+            : ($noti->horas_anticipacion ?? config('notificaciones.horas_anticipacion'));
+
+        if ($tarea->fecha_limite && $tarea->hora_limite) {
+            $vencimiento = Carbon::parse("{$tarea->fecha_limite} {$tarea->hora_limite}");
+            $fechaEnvio  = $vencimiento->copy()->subHours($anticipacion);
+        } else {
+            $fechaEnvio = null;
+        }
+
+        Notificacion::updateOrCreate(
+            ['id_tarea' => $tarea->id_tarea],
+            [
+                'correo_destino'     => $tarea->usuario->correo,
+                'horas_anticipacion' => $anticipacion,
+                'fecha_envio'        => $fechaEnvio,
+                'enviada'            => false,
+            ]
+        );
 
         return response()->json(['success' => true, 'data' => $tarea],200);
     }
@@ -216,7 +267,7 @@ class TareasController extends Controller
             $hoy = now()->toDateString();
 
             $tareasVencidas = Tarea::where('id_usuario', $usuario->id_usuario)
-                ->where('completada', false)
+                ->where('estado', 'Pendiente')
                 ->whereDate('fecha_limite', '<', $hoy)
                 ->with(['usuario', 'notificacion'])
                 ->orderBy('fecha_limite', 'asc')
@@ -235,4 +286,12 @@ class TareasController extends Controller
         }
     }
 
+     public function triggerRecordatorios()
+    {
+        Artisan::call('tareas:enviar-recordatorios');
+        return response()->json([
+            'success' => true,
+            'message' => 'Recordatorios procesados'
+        ]);
+    }
 }
