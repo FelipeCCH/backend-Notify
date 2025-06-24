@@ -50,7 +50,7 @@ class TareasController extends Controller
             'categoria' => 'nullable|string|max:100',
             'fecha_limite' => 'nullable|date|required_with:hora_limite',
             'hora_limite' => 'nullable|date_format:H:i|required_with:fecha_limite',
-            'horas_anticipacion' => 'nullable|integer|min:1',
+            //'horas_anticipacion' => 'nullable|integer|min:1',
         ]);
 
 
