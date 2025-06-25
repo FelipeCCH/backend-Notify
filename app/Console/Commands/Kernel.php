@@ -14,9 +14,15 @@ class Kernel extends ConsoleKernel
 
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('tareas:actualizar-vencidas')->everyMinute();
-        $schedule->command('tareas:enviar-recordatorios')->everyMinute();
+        $schedule->command('tareas:actualizar-vencidas')
+                ->everyMinute()
+                ->withoutOverlapping();
+
+        $schedule->command('tareas:enviar-recordatorios')
+                ->everyMinute()
+                ->withoutOverlapping();
     }
+
 
     protected function commands()
     {
