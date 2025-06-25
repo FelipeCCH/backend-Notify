@@ -1,0 +1,72 @@
+services:
+  - type: web
+    name: notify-backend
+    env: docker
+    repo: https://github.com/FelipeCCH/backend-Notify.git # ← REEMPLAZAR
+    branch: deploy                                      # ← REEMPLAZAR si usás otra rama
+    rootDir: .
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://notify-backend.onrender.com     # ← Cambiá si usás dominio propio
+      - key: LOG_CHANNEL
+        value: stderr
+
+      # Base de datos Clever Cloud
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        value: bdl2mptcr9nlobevxqsp-mysql.services.clever-cloud.com
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DATABASE
+        value: bdl2mptcr9nlobevxqsp
+      - key: DB_USERNAME
+        value: uusrclqe0ltydpgs
+      - key: DB_PASSWORD
+        value: o0Uyq6KV4IkOI15IaK8S
+
+      # Correo
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USERNAME
+        value: notifyinfocr@gmail.com
+      - key: MAIL_PASSWORD
+        value: cphlbmewyxfhgqmx
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: notifyinfocr@gmail.com
+      - key: MAIL_FROM_NAME
+        value: Notify Notificaciones
+
+  - type: worker
+    name: notify-scheduler
+    env: docker
+    repo: https://github.com/FelipeCCH/backend-Notify.git 
+    branch: deploy
+    rootDir: .
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    startCommand: |
+      while true; do
+        php artisan schedule:run >> /dev/null 2>&1
+        sleep 60
+      done
+    envVars:
+      - fromService:
+          type: web
+          name: notify-backend
