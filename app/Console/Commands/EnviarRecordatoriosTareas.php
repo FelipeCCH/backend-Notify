@@ -1,14 +1,15 @@
 <?php
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Notificacion;
+use App\Models\Configuracion;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TareaRecordatorioMail;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\Tarea;
-
 
 class EnviarRecordatoriosTareas extends Command
 {
@@ -25,28 +26,33 @@ class EnviarRecordatoriosTareas extends Command
             ->with('tarea.usuario')
             ->get();
 
-       foreach ($notificaciones as $notificacion) {
-        $tarea = $notificacion->getRelationValue('tarea');
+        foreach ($notificaciones as $notificacion) {
+            $tarea = $notificacion->getRelationValue('tarea');
 
-        if ($tarea && $tarea->usuario && $tarea->usuario->correo) {
-            try {
-                Mail::to($tarea->usuario->correo)->send(new TareaRecordatorioMail($tarea));
+            if ($tarea && $tarea->usuario && $tarea->usuario->correo) {
+                $config = Configuracion::where('id_usuario', $tarea->id_usuario)->first();
 
-                $notificacion->enviada = true;
-                $notificacion->fecha_envio = $now;
-                $notificacion->save();
+                if ($config && ! $config->activar_notificaciones_por_defecto) {
+                    Log::info("Notificación omitida para tarea '{$tarea->titulo}' porque el usuario tiene notificaciones desactivadas.");
+                    continue;
+                }
 
-                $this->info("Recordatorio enviado a: {$tarea->usuario->correo} - {$tarea->titulo}");
-            } catch (\Exception $e) {
-                Log::error("Error al enviar recordatorio para la tarea: {$tarea->titulo}. Error: {$e->getMessage()}");
+                try {
+                    Mail::to($tarea->usuario->correo)->send(new TareaRecordatorioMail($tarea));
+
+                    $notificacion->enviada = true;
+                    $notificacion->fecha_envio = $now;
+                    $notificacion->save();
+
+                    $this->info("Recordatorio enviado a: {$tarea->usuario->correo} - {$tarea->titulo}");
+                } catch (\Exception $e) {
+                    Log::error("Error al enviar recordatorio para la tarea: {$tarea->titulo}. Error: {$e->getMessage()}");
+                }
+            } else {
+                Log::warning("No se pudo enviar recordatorio. Datos incompletos para la tarea ID {$notificacion->id_tarea}");
             }
-        } else {
-            Log::warning("No se pudo enviar recordatorio. Datos incompletos para la tarea ID {$notificacion->id_tarea}");
         }
-    }
-
 
         Log::info("Recordatorios procesados: " . $notificaciones->count());
     }
 }
-

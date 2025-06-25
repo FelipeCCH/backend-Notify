@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Notificacion;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use App\Models\Configuracion;
 
 class TareasController extends Controller
 {
@@ -50,12 +51,12 @@ class TareasController extends Controller
             'categoria' => 'nullable|string|max:100',
             'fecha_limite' => 'nullable|date|required_with:hora_limite',
             'hora_limite' => 'nullable|date_format:H:i|required_with:fecha_limite',
-            //'horas_anticipacion' => 'nullable|integer|min:1',
         ]);
 
 
         try {
             $usuario = Auth::user();
+            $config = Configuracion::where('id_usuario', $usuario->id_usuario)->first();
 
             $tarea = Tarea::create([
                 'id_usuario' => $usuario->id_usuario,
@@ -69,10 +70,7 @@ class TareasController extends Controller
             ]);
 
              // Calcular anticipación y crear notificación
-            $anticipacion = $request->input(
-                'horas_anticipacion',
-                config('notificaciones.horas_anticipacion')
-            );
+            $anticipacion = $config->horas_anticipacion_default ?? 24;
 
             if ($tarea->fecha_limite && $tarea->hora_limite) {
                 $vencimiento = Carbon::parse("{$tarea->fecha_limite} {$tarea->hora_limite}");
@@ -125,7 +123,6 @@ class TareasController extends Controller
             'fecha_limite' => 'required|date',
             'hora_limite' => 'required',
             'estado' => 'required|in:Pendiente,Completado,Vencido',
-            'horas_anticipacion'  => 'nullable|integer|min:1'
         ]);
 
         $tarea = Tarea::find($id);
@@ -133,13 +130,17 @@ class TareasController extends Controller
             return response()->json(['success' => false, 'message' => 'Tarea no encontrada'], 404);
         }
 
+        $usuario = Auth::user();
+        $config = Configuracion::where('id_usuario', $usuario->id_usuario)->first();
+
         $tarea->update($request->all());
 
-        // Recalcular anticipación y actualizar/crear notificación
-        $noti = $tarea->notificacion;
-        $anticipacion = $request->has('horas_anticipacion')
-            ? $request->input('horas_anticipacion')
-            : ($noti->horas_anticipacion ?? config('notificaciones.horas_anticipacion'));
+         if ($config && ! $config->activar_notificaciones_por_defecto) {
+            $tarea->notificacion?->update(['enviada' => true]);
+            return response()->json(['success' => true, 'data' => $tarea], 200);
+        }
+
+        $anticipacion = $config->horas_anticipacion_default ?? 24;
 
         if ($tarea->fecha_limite && $tarea->hora_limite) {
             $vencimiento = Carbon::parse("{$tarea->fecha_limite} {$tarea->hora_limite}");
@@ -158,7 +159,7 @@ class TareasController extends Controller
             ]
         );
 
-        return response()->json(['success' => true, 'data' => $tarea],200);
+        return response()->json(['success' => true, 'data' => $tarea], 200);
     }
 
     /**
