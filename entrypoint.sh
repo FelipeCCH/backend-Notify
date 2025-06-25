@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# Muestra los errores si algo falla
 set -e
+cd /var/www/html
 
-# Caching de configuración y vistas
 php artisan config:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-php artisan migrate
+php artisan migrate --force
 
-# Migraciones automáticas (opcional)
-# php artisan migrate --force
+# Ejecuta schedule:run cada minuto en segundo plano
+while true; do
+  php artisan schedule:run >> /dev/null 2>&1
+  sleep 60
+done &
 
 # Inicia Apache en primer plano
 exec apache2-foreground
