@@ -306,12 +306,22 @@ class TareasController extends Controller
         }
     }
 
-    public function enviarRecordatorios(){
-        Artisan::call('tareas:enviar-recordatorios');
+    public function enviarRecordatorios()
+    {
+        try {
+            Artisan::call('tareas:enviar-recordatorios');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Correo enviado correctamente'
-        ],200);
+            return response()->json([
+                'success' => true,
+                'message' => 'Correo enviado correctamente'
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar recordatorios: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al enviar recordatorios',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
