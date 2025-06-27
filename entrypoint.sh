@@ -10,9 +10,11 @@ php artisan migrate --force
 
 # Ejecuta schedule:run cada minuto en segundo plano
 while true; do
-  php artisan schedule:run >> /dev/null 2>&1
+  echo "=== $(date) Ejecutando cron ===" >> storage/logs/cron.log
+  php artisan schedule:run >> storage/logs/cron.log 2>&1
   sleep 60
 done &
+
 
 # Inicia Apache en primer plano
 exec apache2-foreground

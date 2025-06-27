@@ -19,23 +19,22 @@ class TareasController extends Controller
      */
     public function index()
     {
-        try{
+        try {
             $usuario = Auth::user();
             if (!$usuario) {
                 return response()->json(['error' => 'Usuario no autenticado'], 401);
             }
             // Obtener las tareas del usuario autenticado
             $tareas = Tarea::where('id_usuario', $usuario->id_usuario)
-                ->with(['usuario','notificacion'])
-                ->orderBy('fecha_creacion','desc')->get();
-            
+                ->with(['usuario', 'notificacion'])
+                ->orderBy('fecha_creacion', 'desc')->get();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Tareas encontradas correctamente',
                 'data' => $tareas
-            ],200);
-
-        }catch(\Exception $e){
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener las tareas: ' . $e->getMessage()], 500);
         }
     }
@@ -69,7 +68,7 @@ class TareasController extends Controller
                 'fecha_creacion' => now(),
             ]);
 
-             // Calcular anticipación y crear notificación
+            // Calcular anticipación y crear notificación
             $anticipacion = $config->horas_anticipacion_default ?? 24;
 
             if ($tarea->fecha_limite && $tarea->hora_limite) {
@@ -88,7 +87,6 @@ class TareasController extends Controller
             ]);
 
             return response()->json(['success' => true, 'data' => $tarea], 201);
-
         } catch (\Exception $e) {
             Log::error('Error al crear tarea: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al crear la tarea.'], 500);
@@ -100,7 +98,7 @@ class TareasController extends Controller
      */
     public function show(string $id)
     {
-        $tarea = Tarea::with(['usuario','notificacion'])->find($id);
+        $tarea = Tarea::with(['usuario', 'notificacion'])->find($id);
         if (!$tarea) {
             return response()->json(['error' => 'Tarea no encontrada'], 404);
         }
@@ -135,7 +133,7 @@ class TareasController extends Controller
 
         $tarea->update($request->all());
 
-         if ($config && ! $config->activar_notificaciones_por_defecto) {
+        if ($config && ! $config->activar_notificaciones_por_defecto) {
             $tarea->notificacion?->update(['enviada' => true]);
             return response()->json(['success' => true, 'data' => $tarea], 200);
         }
@@ -177,9 +175,10 @@ class TareasController extends Controller
         return response()->json(['success' => true, 'message' => 'Tarea eliminada con éxito']);
     }
 
-    public function buscar(Request $request){
+    public function buscar(Request $request)
+    {
         try {
-             $usuario = Auth::user();
+            $usuario = Auth::user();
             if (!$usuario) {
                 return response()->json(['error' => 'Usuario no autenticado'], 401);
             }
@@ -287,12 +286,23 @@ class TareasController extends Controller
         }
     }
 
-     public function triggerRecordatorios()
+    public function triggerRecordatorios()
     {
-        Artisan::call('tareas:enviar-recordatorios');
-        return response()->json([
-            'success' => true,
-            'message' => 'Recordatorios procesados'
-        ]);
+        try {
+            Artisan::call('tareas:enviar-recordatorios');
+            Artisan::call('tareas:actualizar-vencidas');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Recordatorios y actualización de tareas vencidas procesados correctamente'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al ejecutar comandos de tareas: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al ejecutar comandos de tareas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
