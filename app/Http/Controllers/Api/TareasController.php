@@ -305,4 +305,13 @@ class TareasController extends Controller
             ], 500);
         }
     }
+
+    public function enviarRecordatorios(){
+        Artisan::call('tareas:enviar-recordatorios');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Correo enviado correctamente'
+        ],200);
+    }
 }
