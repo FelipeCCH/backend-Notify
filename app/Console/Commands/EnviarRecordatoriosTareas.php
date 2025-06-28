@@ -23,7 +23,7 @@ class EnviarRecordatoriosTareas extends Command
         $notificaciones = Notificacion::where('enviada', false)
             ->whereNotNull('fecha_envio')
             ->where('fecha_envio', '<=', $now)
-            ->with('tarea.usuario')
+            ->with(['tarea.usuario'])
             ->get();
 
         foreach ($notificaciones as $notificacion) {

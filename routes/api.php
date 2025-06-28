@@ -6,6 +6,11 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\TareasController;
 
+
+
+Route::post('/tareas/enviar-recordatorios', [TareasController::class, 'enviarRecordatorios']);
+
+
 // Ruta de prueba protegida
 Route::middleware('auth:sanctum')->get('/usuario-autenticado', function (Request $request) {
     return $request->user();
@@ -37,7 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::post('/tareas/trigger-recordatorios', [TareasController::class, 'triggerRecordatorios']);
-Route::post('/tareas/enviar-recordatorios', [TareasController::class, 'enviarRecordatorios']);
+
 
 
 

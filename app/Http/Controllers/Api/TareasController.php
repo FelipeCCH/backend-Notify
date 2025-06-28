@@ -289,12 +289,11 @@ class TareasController extends Controller
     public function triggerRecordatorios()
     {
         try {
-            Artisan::call('tareas:enviar-recordatorios');
             Artisan::call('tareas:actualizar-vencidas');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Recordatorios y actualización de tareas vencidas procesados correctamente'
+                'message' => 'Actualización de tareas vencidas procesados correctamente'
             ]);
         } catch (\Exception $e) {
             Log::error('Error al ejecutar comandos de tareas: ' . $e->getMessage());
