@@ -23,9 +23,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Instala dependencias (sin dev)
 RUN composer install --no-dev --optimize-autoloader
 
-# Permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
+# --- AJUSTE IMPORTANTE AQUÍ ---
+# Crea los directorios requeridos antes de cambiar permisos
+RUN mkdir -p storage/framework/sessions storage/framework/cache storage/framework/views storage/logs \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Copia el script de entrada
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
