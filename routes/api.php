@@ -44,6 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/tareas/trigger-recordatorios', [TareasController::class, 'triggerRecordatorios']);
 
 
+Route::get('/logs-laravel', function () {
+    return response()->file(storage_path('logs/laravel.log'));
+});
 
 
 
